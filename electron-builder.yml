@@ -1,0 +1,27 @@
+appId: com.devflow.studio
+productName: DevFlow Studio
+directories:
+  output: release
+files:
+  - dist/**/*
+  - build/**/*
+  - package.json
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+win:
+  target:
+    - nsis
+  publisherName: DevFlow Studio Team
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  runAfterFinish: true
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
