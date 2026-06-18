@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, Save, ChevronDown, CheckCircle, Database, Sun, Moon } from 'lucide-react';
+import { Play, Save, ChevronDown, CheckCircle, Database } from 'lucide-react';
 import { useStore } from './store';
 import Sidebar from './components/Sidebar';
 import Tabs from './components/Tabs';
@@ -26,10 +26,13 @@ import CodeSnippets from './components/CodeSnippets';
 import EnvGenerator from './components/EnvGenerator';
 import PdfGenerator from './components/PdfGenerator';
 import CsvLoader from './components/CsvLoader';
+import SettingsPanel from './components/SettingsPanel';
+import TerminalPanel from './components/TerminalPanel';
 
 export const App: React.FC = () => {
   const {
     sidebarTab,
+    setSidebarTab,
     tabs,
     activeTabId,
     environments,
@@ -143,7 +146,7 @@ export const App: React.FC = () => {
           {sidebarTab === 'api' && (
             <div className="flex flex-col h-full overflow-hidden">
               {/* Sub-tabs header for API Client */}
-              <div className="flex border-b theme-border bg-white px-2 py-1.5 gap-1 select-none">
+              <div className="flex border-b theme-border theme-bg-primary px-2 py-1.5 gap-1 select-none">
                 <button
                   onClick={() => setApiSubTab('builder')}
                   className={`flex-1 py-1 text-[10px] font-bold rounded-lg text-center transition-all cursor-pointer ${
@@ -201,7 +204,7 @@ export const App: React.FC = () => {
                           placeholder="Request draft name..."
                           value={activeTab.request.name}
                           onChange={(e) => updateActiveTabRequest(r => ({ ...r, name: e.target.value }))}
-                          className="px-3 py-1.5 text-xs theme-text-primary bg-white border theme-border rounded-lg focus:border-[var(--accent-color)]/50 focus:outline-none"
+                          className="px-3 py-1.5 text-xs theme-text-primary theme-bg-primary border theme-border rounded-lg focus:border-[var(--accent-color)]/50 focus:outline-none"
                         />
                         <p className="text-[11px] theme-text-secondary leading-relaxed font-medium">
                           Set URL execution patterns, parameters, header values and customize body configurations. Hit send or use <kbd className="bg-blue-100/80 px-1.5 py-0.5 rounded text-[10px]">Ctrl+Enter</kbd> to launch request.
@@ -233,21 +236,11 @@ export const App: React.FC = () => {
 
       {/* Main Workspace workbench */}
       <div className="flex-grow h-full flex flex-col overflow-hidden relative">
-        {/* Theme Toggler dropdown */}
-        <div className="absolute right-4 top-4 z-40 flex items-center gap-1.5 text-xs">
-          <label className="theme-text-secondary font-medium font-mono text-[10px] uppercase tracking-wider">Theme:</label>
-          <select
-            value={theme}
-            onChange={(e) => setTheme(e.target.value as any)}
-            className="px-2.5 py-1 text-[11px] font-bold theme-text-primary bg-[var(--bg-primary)] border theme-border rounded-lg focus:outline-none cursor-pointer"
-          >
-            <option value="light">White & Blue</option>
-            <option value="dark">Dark Theme</option>
-            <option value="system">System</option>
-          </select>
-        </div>
 
-        {sidebarTab === 'db' ? (
+
+        {sidebarTab === 'terminal' ? (
+          <TerminalPanel />
+        ) : sidebarTab === 'db' ? (
           /* Database Workspaces Main panel */
           <div className="flex-1 flex flex-col h-full overflow-hidden transition-colors theme-bg-primary">
             {/* DB Tabs header */}
@@ -323,6 +316,8 @@ export const App: React.FC = () => {
           <PdfGenerator />
         ) : sidebarTab === 'csvLoader' ? (
           <CsvLoader />
+        ) : sidebarTab === 'settings' ? (
+          <SettingsPanel />
         ) : (
           /* API Workbench Workspace Panel */
           activeTab ? (
@@ -335,7 +330,7 @@ export const App: React.FC = () => {
                     <select
                       value={activeTab.request.method}
                       onChange={(e) => updateActiveTabRequest(r => ({ ...r, method: e.target.value }))}
-                      className="h-10 px-3 pr-8 text-xs font-bold text-[var(--accent-color)] bg-white border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none appearance-none cursor-pointer"
+                      className="h-10 px-3 pr-8 text-xs font-bold text-[var(--accent-color)] theme-bg-primary border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none appearance-none cursor-pointer"
                     >
                       <option value="GET">GET</option>
                       <option value="POST">POST</option>
@@ -352,7 +347,7 @@ export const App: React.FC = () => {
                     placeholder="https://api.example.com/v1/resource"
                     value={activeTab.request.url}
                     onChange={(e) => updateActiveTabRequest(r => ({ ...r, url: e.target.value }))}
-                    className="flex-1 h-10 px-4 text-xs font-mono theme-text-primary bg-white border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none"
+                    className="flex-1 h-10 px-4 text-xs font-mono theme-text-primary theme-bg-primary border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none"
                   />
 
                   <button
@@ -366,7 +361,7 @@ export const App: React.FC = () => {
 
                   <button
                     onClick={handleSaveDraft}
-                    className="h-10 px-4 bg-white text-[var(--accent-color)] border theme-border hover:bg-[var(--bg-secondary)] text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="h-10 px-4 theme-bg-primary text-[var(--accent-color)] border theme-border hover:bg-[var(--bg-secondary)] text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                     title="Save changes to SQLite"
                   >
                     <Save size={14} />

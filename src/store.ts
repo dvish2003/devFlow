@@ -52,8 +52,8 @@ declare global {
 }
 
 interface DevFlowState {
-  sidebarTab: 'api' | 'db' | 'collections' | 'environments' | 'history' | 'plugins' | 'notes' | 'jsonFormatter' | 'jwtDecoder' | 'snippets' | 'envGen' | 'pdfGen' | 'csvLoader';
-  setSidebarTab: (tab: 'api' | 'db' | 'collections' | 'environments' | 'history' | 'plugins' | 'notes' | 'jsonFormatter' | 'jwtDecoder' | 'snippets' | 'envGen' | 'pdfGen' | 'csvLoader') => void;
+  sidebarTab: 'api' | 'db' | 'terminal' | 'collections' | 'environments' | 'history' | 'plugins' | 'notes' | 'jsonFormatter' | 'jwtDecoder' | 'snippets' | 'envGen' | 'pdfGen' | 'csvLoader' | 'settings';
+  setSidebarTab: (tab: 'api' | 'db' | 'terminal' | 'collections' | 'environments' | 'history' | 'plugins' | 'notes' | 'jsonFormatter' | 'jwtDecoder' | 'snippets' | 'envGen' | 'pdfGen' | 'csvLoader' | 'settings') => void;
 
   collections: Collection[];
   requests: RequestItem[];

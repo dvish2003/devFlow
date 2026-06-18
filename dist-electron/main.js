@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -8,6 +41,9 @@ const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const db_1 = require("./db");
 const api_engine_1 = require("./api-engine");
+const nodePty = __importStar(require("node-pty"));
+// Active pty processes map: tabId -> IPty
+const ptyProcesses = new Map();
 let mainWindow = null;
 function createWindow() {
     mainWindow = new electron_1.BrowserWindow({
@@ -122,4 +158,60 @@ electron_1.ipcMain.handle('fs:saveToFile', async (_, defaultPath, content) => {
     }
     fs_1.default.writeFileSync(filePath, content, 'utf8');
     return { success: true, filePath };
+});
+// ─── Terminal IPC (node-pty) ────────────────────────────────────────────────
+electron_1.ipcMain.handle('terminal:create', (event, tabId, cols, rows) => {
+    // Kill any existing pty for this tab
+    if (ptyProcesses.has(tabId)) {
+        try {
+            ptyProcesses.get(tabId).kill();
+        }
+        catch { /* ignore */ }
+        ptyProcesses.delete(tabId);
+    }
+    const shell = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || '/bin/zsh');
+    const cwd = process.env.HOME || process.cwd();
+    const pty = nodePty.spawn(shell, [], {
+        name: 'xterm-256color',
+        cols: cols || 80,
+        rows: rows || 24,
+        cwd,
+        env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
+    });
+    ptyProcesses.set(tabId, pty);
+    pty.onData((data) => {
+        // Send data back to the renderer
+        const win = electron_1.BrowserWindow.getAllWindows()[0];
+        if (win && !win.isDestroyed()) {
+            win.webContents.send(`terminal:data:${tabId}`, data);
+        }
+    });
+    pty.onExit(() => {
+        ptyProcesses.delete(tabId);
+        const win = electron_1.BrowserWindow.getAllWindows()[0];
+        if (win && !win.isDestroyed()) {
+            win.webContents.send(`terminal:exit:${tabId}`);
+        }
+    });
+    return pty.pid;
+});
+electron_1.ipcMain.handle('terminal:write', (_, tabId, data) => {
+    const pty = ptyProcesses.get(tabId);
+    if (pty)
+        pty.write(data);
+});
+electron_1.ipcMain.handle('terminal:resize', (_, tabId, cols, rows) => {
+    const pty = ptyProcesses.get(tabId);
+    if (pty)
+        pty.resize(cols, rows);
+});
+electron_1.ipcMain.handle('terminal:kill', (_, tabId) => {
+    const pty = ptyProcesses.get(tabId);
+    if (pty) {
+        try {
+            pty.kill();
+        }
+        catch { /* ignore */ }
+        ptyProcesses.delete(tabId);
+    }
 });

@@ -81,7 +81,7 @@ export const ResponseTabs: React.FC = () => {
           <button
             onClick={handleCopy}
             title="Copy Response Body"
-            className="p-2 rounded-lg bg-white hover:bg-[var(--bg-secondary)] text-[var(--accent-color)] border theme-border transition-colors cursor-pointer text-xs flex items-center gap-1"
+            className="p-2 rounded-lg theme-bg-primary hover:bg-[var(--bg-secondary)] text-[var(--accent-color)] border theme-border transition-colors cursor-pointer text-xs flex items-center gap-1"
           >
             <Copy size={13} />
             {copied ? 'Copied!' : 'Copy'}
@@ -89,7 +89,7 @@ export const ResponseTabs: React.FC = () => {
           <button
             onClick={handleSave}
             title="Save to File"
-            className="p-2 rounded-lg bg-white hover:bg-[var(--bg-secondary)] text-[var(--accent-color)] border theme-border transition-colors cursor-pointer text-xs flex items-center gap-1"
+            className="p-2 rounded-lg theme-bg-primary hover:bg-[var(--bg-secondary)] text-[var(--accent-color)] border theme-border transition-colors cursor-pointer text-xs flex items-center gap-1"
           >
             <Save size={13} />
             Save
@@ -122,14 +122,14 @@ export const ResponseTabs: React.FC = () => {
           <textarea
             readOnly
             value={response.body}
-            className="w-full h-full p-4 rounded-xl bg-white border theme-border text-xs font-mono theme-text-primary focus:outline-none resize-none overflow-auto"
+            className="w-full h-full p-4 rounded-xl theme-bg-secondary border theme-border text-xs font-mono theme-text-primary focus:outline-none resize-none overflow-auto"
           />
         )}
 
         {activePane === 'preview' && <PreviewViewer body={response.body} />}
 
         {activePane === 'headers' && (
-          <div className="w-full h-full overflow-y-auto rounded-xl bg-white border theme-border p-4 flex flex-col gap-2">
+          <div className="w-full h-full overflow-y-auto rounded-xl theme-bg-secondary border theme-border p-4 flex flex-col gap-2">
             {Object.entries(response.headers).map(([key, value]) => (
               <div key={key} className="flex border-b border-zinc-100 pb-1.5 text-xs">
                 <span className="w-1/3 theme-text-secondary font-medium font-mono">{key}</span>

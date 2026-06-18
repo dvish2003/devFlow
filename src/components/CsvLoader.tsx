@@ -109,7 +109,7 @@ export const CsvLoader: React.FC = () => {
                 placeholder="Filter grid data..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs theme-text-primary bg-white border theme-border rounded-lg focus:border-[var(--accent-color)]/50 focus:outline-none"
+                className="w-full pl-8 pr-3 py-1.5 text-xs theme-text-primary theme-bg-primary border theme-border rounded-lg focus:border-[var(--accent-color)]/50 focus:outline-none"
               />
             </div>
             <label className="text-[10px] uppercase font-bold text-[var(--accent-color)] hover:opacity-85 cursor-pointer flex items-center gap-1 transition-all">
@@ -118,7 +118,7 @@ export const CsvLoader: React.FC = () => {
             </label>
           </div>
 
-          <div className="flex-grow overflow-auto border theme-border rounded-xl bg-white relative">
+          <div className="flex-grow overflow-auto border theme-border rounded-xl theme-bg-secondary relative">
             <table className="w-full text-left border-collapse text-xs font-sans select-text">
               <thead>
                 <tr className="bg-[var(--bg-sidebar)] border-b theme-border text-zinc-650 sticky top-0 z-10">
@@ -154,7 +154,7 @@ export const CsvLoader: React.FC = () => {
                           {/* Quick cell copy button */}
                           <button
                             onClick={() => handleCellClick(val, rIdx, col)}
-                            className="absolute right-1 top-2 p-1 bg-white border theme-border rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-zinc-500 hover:text-[var(--accent-color)]"
+                            className="absolute right-1 top-2 p-1 theme-bg-primary border theme-border rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-zinc-500 hover:text-[var(--accent-color)]"
                             title="Copy cell value"
                           >
                             {isCopied ? <Check size={10} className="text-emerald-500" /> : <Clipboard size={10} />}

@@ -3,6 +3,12 @@ import path from 'path';
 import fs from 'fs';
 import { dbOps } from './db';
 import { executeRequest } from './api-engine';
+import * as nodePty from 'node-pty';
+
+// Active pty processes map: tabId -> IPty
+const ptyProcesses = new Map<string, nodePty.IPty>();
+
+
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -140,3 +146,62 @@ ipcMain.handle('fs:saveToFile', async (_, defaultPath: string, content: string) 
   fs.writeFileSync(filePath, content, 'utf8');
   return { success: true, filePath };
 });
+
+// ─── Terminal IPC (node-pty) ────────────────────────────────────────────────
+ipcMain.handle('terminal:create', (event, tabId: string, cols: number, rows: number) => {
+  // Kill any existing pty for this tab
+  if (ptyProcesses.has(tabId)) {
+    try { ptyProcesses.get(tabId)!.kill(); } catch { /* ignore */ }
+    ptyProcesses.delete(tabId);
+  }
+
+  const shell = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || '/bin/zsh');
+  const cwd = process.env.HOME || process.cwd();
+
+  const pty = nodePty.spawn(shell, [], {
+    name: 'xterm-256color',
+    cols: cols || 80,
+    rows: rows || 24,
+    cwd,
+    env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
+  });
+
+  ptyProcesses.set(tabId, pty);
+
+  pty.onData((data) => {
+    // Send data back to the renderer
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win && !win.isDestroyed()) {
+      win.webContents.send(`terminal:data:${tabId}`, data);
+    }
+  });
+
+  pty.onExit(() => {
+    ptyProcesses.delete(tabId);
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win && !win.isDestroyed()) {
+      win.webContents.send(`terminal:exit:${tabId}`);
+    }
+  });
+
+  return pty.pid;
+});
+
+ipcMain.handle('terminal:write', (_, tabId: string, data: string) => {
+  const pty = ptyProcesses.get(tabId);
+  if (pty) pty.write(data);
+});
+
+ipcMain.handle('terminal:resize', (_, tabId: string, cols: number, rows: number) => {
+  const pty = ptyProcesses.get(tabId);
+  if (pty) pty.resize(cols, rows);
+});
+
+ipcMain.handle('terminal:kill', (_, tabId: string) => {
+  const pty = ptyProcesses.get(tabId);
+  if (pty) {
+    try { pty.kill(); } catch { /* ignore */ }
+    ptyProcesses.delete(tabId);
+  }
+});
+

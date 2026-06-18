@@ -121,7 +121,7 @@ export const EnvGenerator: React.FC = () => {
             <div className="flex gap-1.5">
               <button
                 onClick={handleCopy}
-                className="px-2.5 py-1 text-[11px] font-bold bg-white text-[var(--accent-color)] border theme-border hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-1 cursor-pointer transition-all"
+                className="px-2.5 py-1 text-[11px] font-bold theme-bg-primary text-[var(--accent-color)] border theme-border hover:bg-[var(--bg-secondary)] rounded-lg flex items-center gap-1 cursor-pointer transition-all"
               >
                 {copied ? <Check size={12} /> : <Copy size={12} />}
                 {copied ? 'Copied' : 'Copy'}
@@ -136,7 +136,7 @@ export const EnvGenerator: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 rounded-xl border theme-border bg-white overflow-hidden p-4 relative">
+          <div className="flex-1 rounded-xl border theme-border theme-bg-secondary overflow-hidden p-4 relative">
             <textarea
               readOnly
               value={generateEnvString()}

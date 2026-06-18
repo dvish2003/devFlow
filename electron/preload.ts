@@ -54,5 +54,25 @@ contextBridge.exposeInMainWorld('api', {
   // Snippets
   getCodeSnippets: () => ipcRenderer.invoke('db:getCodeSnippets'),
   saveCodeSnippet: (snip: any) => ipcRenderer.invoke('db:saveCodeSnippet', snip),
-  deleteCodeSnippet: (id: string) => ipcRenderer.invoke('db:deleteCodeSnippet', id)
+  deleteCodeSnippet: (id: string) => ipcRenderer.invoke('db:deleteCodeSnippet', id),
+
+  // ── Terminal (node-pty) ──────────────────────────────────────────────────
+  termCreate: (tabId: string, cols: number, rows: number) =>
+    ipcRenderer.invoke('terminal:create', tabId, cols, rows),
+  termWrite: (tabId: string, data: string) =>
+    ipcRenderer.invoke('terminal:write', tabId, data),
+  termResize: (tabId: string, cols: number, rows: number) =>
+    ipcRenderer.invoke('terminal:resize', tabId, cols, rows),
+  termKill: (tabId: string) =>
+    ipcRenderer.invoke('terminal:kill', tabId),
+  onTermData: (tabId: string, callback: (data: string) => void) => {
+    const channel = `terminal:data:${tabId}`;
+    ipcRenderer.on(channel, (_event, data) => callback(data));
+    return () => ipcRenderer.removeAllListeners(channel);
+  },
+  onTermExit: (tabId: string, callback: () => void) => {
+    const channel = `terminal:exit:${tabId}`;
+    ipcRenderer.on(channel, () => callback());
+    return () => ipcRenderer.removeAllListeners(channel);
+  },
 });

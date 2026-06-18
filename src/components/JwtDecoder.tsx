@@ -108,7 +108,7 @@ export const JwtDecoder: React.FC = () => {
           {/* Expiry / Summary Panel */}
           <div className="flex flex-col gap-2 min-w-0">
             <span className="text-[11px] font-bold theme-text-secondary uppercase tracking-wider">Decoded Claims Meta</span>
-            <div className="flex-1 p-4 rounded-xl bg-white border theme-border overflow-y-auto flex flex-col gap-3">
+            <div className="flex-1 p-4 rounded-xl theme-bg-secondary border theme-border overflow-y-auto flex flex-col gap-3">
               {/* Expiry indicator card */}
               <div className={`p-3 rounded-lg border flex items-center gap-3 ${
                 isTokenExpired()
