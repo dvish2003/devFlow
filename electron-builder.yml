@@ -4,6 +4,7 @@ directories:
   output: release
 files:
   - dist/**/*
+  - dist-electron/**/*
   - build/**/*
   - package.json
 mac:
