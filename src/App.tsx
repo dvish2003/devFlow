@@ -466,7 +466,7 @@ export const App: React.FC = () => {
             )
           )}
         </div>
-        {showTerminal && (
+        {showTerminal && sidebarTab !== 'settings' && (
           <div 
             style={{ height: `${terminalHeight}px` }}
             className="border-t border-zinc-800 bg-[#0d0f14] flex flex-col flex-shrink-0 relative"
@@ -482,7 +482,6 @@ export const App: React.FC = () => {
         )}
       </div>
       <WelcomeGuide />
-    </div>
     </div>
   );
 };

@@ -386,7 +386,7 @@ export const TerminalPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) =
           <select
             value={termTheme}
             onChange={(e: any) => setTermTheme(e.target.value)}
-            className="px-2 py-1 bg-zinc-800/80 border border-zinc-700 text-zinc-350 text-[10px] font-sans font-bold rounded-lg focus:outline-none cursor-pointer hover:bg-zinc-800 transition-colors"
+            className="px-2.5 py-1 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] border border-[var(--accent-color)]/20 text-white text-[10px] font-sans font-bold rounded-lg focus:outline-none cursor-pointer transition-all shadow-sm"
           >
             <option value="default">Default Dark</option>
             <option value="matrix">Matrix</option>

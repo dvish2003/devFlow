@@ -38,7 +38,7 @@ const FEATURES = [
 ];
 
 export const SettingsPanel: React.FC = () => {
-  const { theme, setTheme } = useStore();
+  const { theme, setTheme, setShowWelcome } = useStore();
 
   return (
     <div className="flex-grow flex flex-col h-full overflow-y-auto theme-bg-primary">
@@ -158,9 +158,17 @@ export const SettingsPanel: React.FC = () => {
                 <p className="text-[10px] text-zinc-500">v1.0.0 · Electron + React + SQLite</p>
               </div>
             </div>
-            <span className="text-[10px] px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold">
-              Production Ready
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowWelcome(true)}
+                className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-[11px] font-bold rounded-lg transition-colors cursor-pointer"
+              >
+                View Guidelines
+              </button>
+              <span className="text-[10px] px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold">
+                Production Ready
+              </span>
+            </div>
           </div>
         </section>
       </div>
