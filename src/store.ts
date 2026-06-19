@@ -52,7 +52,7 @@ declare global {
   }
 }
 
-interface DevFlowState {
+export interface DevFlowState {
   sidebarTab: 'api' | 'db' | 'terminal' | 'collections' | 'environments' | 'history' | 'plugins' | 'notes' | 'jsonFormatter' | 'jwtDecoder' | 'snippets' | 'envGen' | 'pdfGen' | 'csvLoader' | 'settings';
   setSidebarTab: (tab: 'api' | 'db' | 'terminal' | 'collections' | 'environments' | 'history' | 'plugins' | 'notes' | 'jsonFormatter' | 'jwtDecoder' | 'snippets' | 'envGen' | 'pdfGen' | 'csvLoader' | 'settings') => void;
 
@@ -139,11 +139,18 @@ interface DevFlowState {
   // DB history actions
   addDbHistoryLog: (connId: string, query: string) => Promise<void>;
   clearDbHistoryLog: (connId: string) => Promise<void>;
+
+  // Welcome / Guidelines Modal
+  showWelcome: boolean;
+  setShowWelcome: (show: boolean) => void;
 }
 
 export const useStore = create<DevFlowState>((set, get) => ({
   sidebarTab: 'api',
   setSidebarTab: (sidebarTab) => set({ sidebarTab }),
+
+  showWelcome: false,
+  setShowWelcome: (showWelcome) => set({ showWelcome }),
 
   collections: [],
   requests: [],
@@ -337,10 +344,15 @@ export const useStore = create<DevFlowState>((set, get) => ({
   saveRequest: async (req) => {
     const updatedReq = { ...req, updated_at: Date.now() };
     await window.api.saveRequest(updatedReq);
-    set((state) => ({
-      requests: state.requests.map(r => r.id === req.id ? updatedReq : r),
-      tabs: state.tabs.map(t => t.id === req.id ? { ...t, isDirty: false, request: updatedReq } : t)
-    }));
+    set((state) => {
+      const exists = state.requests.some(r => r.id === req.id);
+      return {
+        requests: exists
+          ? state.requests.map(r => r.id === req.id ? updatedReq : r)
+          : [...state.requests, updatedReq],
+        tabs: state.tabs.map(t => t.id === req.id ? { ...t, isDirty: false, request: updatedReq } : t)
+      };
+    });
   },
 
   deleteRequest: async (id) => {

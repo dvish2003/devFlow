@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Play, Save, ChevronDown, CheckCircle, Database } from 'lucide-react';
 import { useStore } from './store';
+import type { DevFlowState } from './store';
 import Sidebar from './components/Sidebar';
 import Tabs from './components/Tabs';
 import HeadersEditor from './components/RequestBuilder/HeadersEditor';
@@ -9,9 +10,9 @@ import BodyEditor from './components/RequestBuilder/BodyEditor';
 import AuthEditor from './components/RequestBuilder/AuthEditor';
 import ResponseTabs from './components/ResponseViewer/ResponseTabs';
 import CollectionManager from './components/CollectionManager';
-import EnvironmentManager from './components/EnvironmentManager';
 import HistoryPanel from './components/HistoryPanel';
 import PluginsPanel from './components/PluginsPanel';
+import WelcomeGuide from './components/WelcomeGuide';
 
 // Database Viewer Components
 import DbExplorer from './components/DbExplorer';
@@ -44,6 +45,7 @@ export const App: React.FC = () => {
     setActiveTabResponse,
     addHistoryItem,
     saveRequest,
+    collections,
 
     // Database state mappings
     theme,
@@ -51,12 +53,38 @@ export const App: React.FC = () => {
     dbTabs,
     activeDbTabId,
     setActiveDbTabId,
-    closeDbTab
+    closeDbTab,
+    showWelcome,
+    setShowWelcome
   } = useStore();
 
   const [activeBuilderTab, setActiveBuilderTab] = useState<'params' | 'headers' | 'body' | 'auth'>('params');
   const [dbStatus, setDbStatus] = useState<'connected' | 'disconnected'>('disconnected');
-  const [apiSubTab, setApiSubTab] = useState<'builder' | 'collections' | 'environments' | 'history'>('builder');
+  const [apiSubTab, setApiSubTab] = useState<'builder' | 'collections' | 'history'>('builder');
+
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(288); // default height 288px
+  const [prevTab, setPrevTab] = useState<DevFlowState['sidebarTab']>('api');
+
+  // Handle resizing of terminal panel via dragging top border
+  const handleTerminalResize = (mouseDownEvent: React.MouseEvent) => {
+    const startY = mouseDownEvent.clientY;
+    const startHeight = terminalHeight;
+
+    const doDrag = (mouseMoveEvent: MouseEvent) => {
+      const deltaY = mouseMoveEvent.clientY - startY;
+      const newHeight = Math.max(120, Math.min(window.innerHeight - 100, startHeight - deltaY));
+      setTerminalHeight(newHeight);
+    };
+
+    const stopDrag = () => {
+      document.removeEventListener('mousemove', doDrag);
+      document.removeEventListener('mouseup', stopDrag);
+    };
+
+    document.addEventListener('mousemove', doDrag);
+    document.addEventListener('mouseup', stopDrag);
+  };
 
   // Load Initial Workspace Data from SQLite
   useEffect(() => {
@@ -66,6 +94,24 @@ export const App: React.FC = () => {
       setDbStatus('disconnected');
     });
   }, [loadData]);
+
+  // Welcome dialog first-time check
+  useEffect(() => {
+    const hasSeen = localStorage.getItem('hasSeenWelcome');
+    if (!hasSeen) {
+      setShowWelcome(true);
+    }
+  }, [setShowWelcome]);
+
+  // Handle sidebar terminal clicks to toggle bottom terminal panel
+  useEffect(() => {
+    if (sidebarTab === 'terminal') {
+      setShowTerminal(prev => !prev);
+      setSidebarTab(prevTab);
+    } else {
+      setPrevTab(sidebarTab);
+    }
+  }, [sidebarTab, setSidebarTab, prevTab]);
 
   const activeTab = tabs.find(t => t.id === activeTabId);
 
@@ -169,16 +215,6 @@ export const App: React.FC = () => {
                   Collections
                 </button>
                 <button
-                  onClick={() => setApiSubTab('environments')}
-                  className={`flex-1 py-1 text-[10px] font-bold rounded-lg text-center transition-all cursor-pointer ${
-                    apiSubTab === 'environments'
-                      ? 'bg-[var(--accent-bg)] text-[var(--accent-color)] border border-[var(--accent-color)]/10 shadow-sm'
-                      : 'theme-text-secondary hover:bg-[var(--bg-secondary)]'
-                  }`}
-                >
-                  Envs
-                </button>
-                <button
                   onClick={() => setApiSubTab('history')}
                   className={`flex-1 py-1 text-[10px] font-bold rounded-lg text-center transition-all cursor-pointer ${
                     apiSubTab === 'history'
@@ -207,6 +243,23 @@ export const App: React.FC = () => {
                           onChange={(e) => updateActiveTabRequest(r => ({ ...r, name: e.target.value }))}
                           className="px-3 py-1.5 text-xs theme-text-primary theme-bg-primary border theme-border rounded-lg focus:border-[var(--accent-color)]/50 focus:outline-none"
                         />
+                        <label className="text-[11px] font-semibold text-zinc-550 uppercase tracking-wider">Collection</label>
+                        <select
+                          value={activeTab.request.collection_id || ''}
+                          onChange={(e) => {
+                            const val = e.target.value || null;
+                            updateActiveTabRequest(r => ({ ...r, collection_id: val }));
+                            if (val) {
+                              setApiSubTab('collections');
+                            }
+                          }}
+                          className="px-3 py-1.5 text-xs theme-text-primary theme-bg-primary border theme-border rounded-lg focus:border-[var(--accent-color)]/50 focus:outline-none cursor-pointer"
+                        >
+                          <option value="">None (Scratch Draft)</option>
+                          {collections.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
                         <p className="text-[11px] theme-text-secondary leading-relaxed font-medium">
                           Set URL execution patterns, parameters, header values and customize body configurations. Hit send or use <kbd className="bg-blue-100/80 px-1.5 py-0.5 rounded text-[10px]">Ctrl+Enter</kbd> to launch request.
                         </p>
@@ -225,7 +278,6 @@ export const App: React.FC = () => {
                   </div>
                 )}
                 {apiSubTab === 'collections' && <CollectionManager />}
-                {apiSubTab === 'environments' && <EnvironmentManager />}
                 {apiSubTab === 'history' && <HistoryPanel />}
               </div>
             </div>
@@ -238,191 +290,199 @@ export const App: React.FC = () => {
       {/* Main Workspace workbench */}
       <div className="flex-grow min-w-0 h-full flex flex-col overflow-hidden relative">
 
-
-        {sidebarTab === 'terminal' ? (
-          <TerminalPanel />
-        ) : sidebarTab === 'db' ? (
-          /* Database Workspaces Main panel */
-          <div className="flex-1 flex flex-col h-full overflow-hidden transition-colors theme-bg-primary">
-            {/* DB Tabs header */}
-            <div className="flex items-center border-b overflow-x-auto w-full select-none scrollbar-none theme-bg-secondary theme-border">
-              <div className="flex items-center min-w-max">
-                {dbTabs.map((t) => {
-                  const isActive = t.id === activeDbTabId;
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => setActiveDbTabId(t.id)}
-                      className={`flex items-center gap-2 px-4 h-10 border-r theme-border cursor-pointer group transition-all duration-150 ${
-                        isActive
-                          ? 'theme-bg-primary theme-text-primary font-semibold border-t-2 border-t-[var(--accent-color)]'
-                          : 'theme-text-secondary hover:theme-text-primary hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40'
-                      }`}
-                    >
-                      <span className="text-[10px] bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 uppercase font-bold tracking-wider scale-95 border border-blue-100">
-                        {t.type}
-                      </span>
-                      <span className="text-xs truncate max-w-[120px]">{t.name}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          closeDbTab(t.id);
-                        }}
-                        className="p-0.5 rounded hover:bg-blue-100/50 theme-text-secondary hover:theme-text-primary opacity-60 group-hover:opacity-100 transition-opacity"
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {sidebarTab === 'db' ? (
+            /* Database Workspaces Main panel */
+            <div className="flex-1 flex flex-col h-full overflow-hidden transition-colors theme-bg-primary">
+              {/* DB Tabs header */}
+              <div className="flex items-center border-b overflow-x-auto w-full select-none scrollbar-none theme-bg-secondary theme-border">
+                <div className="flex items-center min-w-max">
+                  {dbTabs.map((t) => {
+                    const isActive = t.id === activeDbTabId;
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => setActiveDbTabId(t.id)}
+                        className={`flex items-center gap-2 px-4 h-10 border-r theme-border cursor-pointer group transition-all duration-150 ${
+                          isActive
+                            ? 'theme-bg-primary theme-text-primary font-semibold border-t-2 border-t-[var(--accent-color)]'
+                            : 'theme-text-secondary hover:theme-text-primary hover:bg-zinc-200/50 dark:hover:bg-zinc-800/40'
+                        }`}
                       >
-                        ×
-                      </button>
-                    </div>
-                  );
-                })}
+                        <span className="text-[10px] bg-blue-50 px-1.5 py-0.5 rounded text-blue-600 uppercase font-bold tracking-wider scale-95 border border-blue-100">
+                          {t.type}
+                        </span>
+                        <span className="text-xs truncate max-w-[120px]">{t.name}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            closeDbTab(t.id);
+                          }}
+                          className="p-0.5 rounded hover:bg-blue-100/50 theme-text-secondary hover:theme-text-primary opacity-60 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            {/* DB Active tab details display */}
-            <div className="p-4 flex-grow overflow-hidden flex flex-col">
-              {activeDbTab ? (
-                activeDbTab.type === 'table' && activeDbTab.tableName ? (
-                  <DbDataGrid
-                    key={activeDbTab.id}
-                    connectionId={activeDbTab.connectionId}
-                    tableName={activeDbTab.tableName}
-                    tabId={activeDbTab.id}
-                  />
+              {/* DB Active tab details display */}
+              <div className="p-4 flex-grow overflow-hidden flex flex-col">
+                {activeDbTab ? (
+                  activeDbTab.type === 'table' && activeDbTab.tableName ? (
+                    <DbDataGrid
+                      key={activeDbTab.id}
+                      connectionId={activeDbTab.connectionId}
+                      tableName={activeDbTab.tableName}
+                      tabId={activeDbTab.id}
+                    />
+                  ) : (
+                    <DbQueryEditor
+                      key={activeDbTab.id}
+                      connectionId={activeDbTab.connectionId}
+                      tabId={activeDbTab.id}
+                      initialQuery={activeDbTab.queryContent}
+                    />
+                  )
                 ) : (
-                  <DbQueryEditor
-                    key={activeDbTab.id}
-                    connectionId={activeDbTab.connectionId}
-                    tabId={activeDbTab.id}
-                    initialQuery={activeDbTab.queryContent}
-                  />
-                )
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 select-none gap-2">
-                  <Database size={32} className="text-zinc-650" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">No Active Database Workspace</span>
-                  <span className="text-[11px] text-zinc-600">Select tables from explorer tree to view data or open consoles</span>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : sidebarTab === 'notes' ? (
-          <NotesPanel />
-        ) : sidebarTab === 'jsonFormatter' ? (
-          <JsonFormatter />
-        ) : sidebarTab === 'jwtDecoder' ? (
-          <JwtDecoder />
-        ) : sidebarTab === 'snippets' ? (
-          <CodeSnippets />
-        ) : sidebarTab === 'envGen' ? (
-          <EnvGenerator />
-        ) : sidebarTab === 'pdfGen' ? (
-          <PdfGenerator />
-        ) : sidebarTab === 'csvLoader' ? (
-          <CsvLoader />
-        ) : sidebarTab === 'settings' ? (
-          <SettingsPanel />
-        ) : sidebarTab === 'plugins' ? (
-          <PluginsWorkspace />
-        ) : (
-          /* API Workbench Workspace Panel */
-          activeTab ? (
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
-              <Tabs />
-
-              <div className="p-4 flex flex-col gap-4 flex-grow overflow-y-auto">
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <select
-                      value={activeTab.request.method}
-                      onChange={(e) => updateActiveTabRequest(r => ({ ...r, method: e.target.value }))}
-                      className="h-10 px-3 pr-8 text-xs font-bold text-[var(--accent-color)] theme-bg-primary border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none appearance-none cursor-pointer"
-                    >
-                      <option value="GET">GET</option>
-                      <option value="POST">POST</option>
-                      <option value="PUT">PUT</option>
-                      <option value="DELETE">DELETE</option>
-                      <option value="PATCH">PATCH</option>
-                      <option value="OPTIONS">OPTIONS</option>
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-3.5 text-zinc-500 pointer-events-none" size={13} />
-                  </div>
-
-                  <input
-                    type="text"
-                    placeholder="https://api.example.com/v1/resource"
-                    value={activeTab.request.url}
-                    onChange={(e) => updateActiveTabRequest(r => ({ ...r, url: e.target.value }))}
-                    className="flex-1 h-10 px-4 text-xs font-mono theme-text-primary theme-bg-primary border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none"
-                  />
-
-                  <button
-                    onClick={handleSend}
-                    disabled={activeTab.isSending}
-                    className="h-10 px-5 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Play size={14} className="fill-current" />
-                    Send
-                  </button>
-
-                  <button
-                    onClick={handleSaveDraft}
-                    className="h-10 px-4 theme-bg-primary text-[var(--accent-color)] border theme-border hover:bg-[var(--bg-secondary)] text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
-                    title="Save changes to SQLite"
-                  >
-                    <Save size={14} />
-                    Save
-                  </button>
-                </div>
-
-                {activeEnv && (
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/5 border border-emerald-500/10 rounded-lg max-w-max">
-                    <CheckCircle size={12} className="text-emerald-400" />
-                    <span className="text-[10px] text-zinc-500 font-medium">
-                      Active Environment: <strong className="text-emerald-400 font-bold">{activeEnv.name}</strong>
-                    </span>
+                  <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 select-none gap-2">
+                    <Database size={32} className="text-zinc-650" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">No Active Database Workspace</span>
+                    <span className="text-[11px] text-zinc-600">Select tables from explorer tree to view data or open consoles</span>
                   </div>
                 )}
+              </div>
+            </div>
+          ) : sidebarTab === 'notes' ? (
+            <NotesPanel />
+          ) : sidebarTab === 'jsonFormatter' ? (
+            <JsonFormatter />
+          ) : sidebarTab === 'jwtDecoder' ? (
+            <JwtDecoder />
+          ) : sidebarTab === 'snippets' ? (
+            <CodeSnippets />
+          ) : sidebarTab === 'envGen' ? (
+            <EnvGenerator />
+          ) : sidebarTab === 'pdfGen' ? (
+            <PdfGenerator />
+          ) : sidebarTab === 'csvLoader' ? (
+            <CsvLoader />
+          ) : sidebarTab === 'settings' ? (
+            <SettingsPanel />
+          ) : sidebarTab === 'plugins' ? (
+            <PluginsWorkspace />
+          ) : (
+            /* API Workbench Workspace Panel */
+            activeTab ? (
+              <div className="flex-1 flex flex-col h-full overflow-hidden">
+                <Tabs />
 
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden min-h-[350px]">
-                  <div className="flex flex-col gap-3 min-w-0">
-                    <div className="flex gap-2 border-b border-[#181822] pb-2">
-                      {builderTabs.map((bt) => (
-                        <button
-                          key={bt.id}
-                          onClick={() => setActiveBuilderTab(bt.id)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                            activeBuilderTab === bt.id
-                              ? 'bg-[var(--accent-color)] text-white'
-                              : 'theme-text-secondary hover:bg-[var(--bg-secondary)]'
-                          }`}
-                        >
-                          {bt.label}
-                        </button>
-                      ))}
+                <div className="p-4 flex flex-col gap-4 flex-grow overflow-y-auto">
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <select
+                        value={activeTab.request.method}
+                        onChange={(e) => updateActiveTabRequest(r => ({ ...r, method: e.target.value }))}
+                        className="h-10 px-3 pr-8 text-xs font-bold text-[var(--accent-color)] theme-bg-primary border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="OPTIONS">OPTIONS</option>
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-3.5 text-zinc-500 pointer-events-none" size={13} />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto">
-                      {activeBuilderTab === 'params' && <ParamsEditor />}
-                      {activeBuilderTab === 'headers' && <HeadersEditor />}
-                      {activeBuilderTab === 'body' && <BodyEditor />}
-                      {activeBuilderTab === 'auth' && <AuthEditor />}
-                    </div>
+                    <input
+                      type="text"
+                      placeholder="https://api.example.com/v1/resource"
+                      value={activeTab.request.url}
+                      onChange={(e) => updateActiveTabRequest(r => ({ ...r, url: e.target.value }))}
+                      className="flex-1 h-10 px-4 text-xs font-mono theme-text-primary theme-bg-primary border theme-border rounded-xl focus:border-[var(--accent-color)]/50 focus:outline-none"
+                    />
+
+                    <button
+                      onClick={handleSend}
+                      disabled={activeTab.isSending}
+                      className="h-10 px-5 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] disabled:bg-zinc-200 disabled:text-zinc-400 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Play size={14} className="fill-current" />
+                      Send
+                    </button>
+
+                    <button
+                      onClick={handleSaveDraft}
+                      className="h-10 px-4 theme-bg-primary text-[var(--accent-color)] border theme-border hover:bg-[var(--bg-secondary)] text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Save changes to SQLite"
+                    >
+                      <Save size={14} />
+                      Save
+                    </button>
                   </div>
 
-                  <div className="min-w-0 h-full">
-                    <ResponseTabs />
+
+
+                  <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden min-h-[350px]">
+                    <div className="flex flex-col gap-3 min-w-0">
+                      <div className="flex gap-2 border-b border-[#181822] pb-2">
+                        {builderTabs.map((bt) => (
+                          <button
+                            key={bt.id}
+                            onClick={() => setActiveBuilderTab(bt.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                              activeBuilderTab === bt.id
+                                ? 'bg-[var(--accent-color)] text-white'
+                                : 'theme-text-secondary hover:bg-[var(--bg-secondary)]'
+                            }`}
+                          >
+                            {bt.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto">
+                        {activeBuilderTab === 'params' && <ParamsEditor />}
+                        {activeBuilderTab === 'headers' && <HeadersEditor />}
+                        {activeBuilderTab === 'body' && <BodyEditor />}
+                        {activeBuilderTab === 'auth' && <AuthEditor />}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 h-full">
+                      <ResponseTabs />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 select-none gap-2 h-full">
-              <span className="text-xs font-semibold uppercase tracking-wider">No Active Request Tab</span>
-              <span className="text-[11px] text-zinc-650">Select or create requests from collections/history on the left</span>
-            </div>
-          )
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-zinc-500 select-none gap-2 h-full">
+                <span className="text-xs font-semibold uppercase tracking-wider">No Active Request Tab</span>
+                <span className="text-[11px] text-zinc-650">Select or create requests from collections/history on the left</span>
+              </div>
+            )
+          )}
+        </div>
+        {showTerminal && (
+          <div 
+            style={{ height: `${terminalHeight}px` }}
+            className="border-t border-zinc-800 bg-[#0d0f14] flex flex-col flex-shrink-0 relative"
+          >
+            {/* Resizing Drag Handle */}
+            <div 
+              onMouseDown={handleTerminalResize}
+              className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-emerald-500/40 transition-colors z-50"
+              title="Drag to resize terminal"
+            />
+            <TerminalPanel onClose={() => setShowTerminal(false)} />
+          </div>
         )}
       </div>
+      <WelcomeGuide />
+    </div>
     </div>
   );
 };

@@ -11,7 +11,7 @@ export const EnvironmentManager: React.FC = () => {
   const [varKey, setVarKey] = useState('');
   const [varVal, setVarVal] = useState('');
 
-  const handleCreateEnv = async (e: React.FormEvent) => {
+  const handleCreateEnv = async (e: React.FormEvent | React.MouseEvent) => {
     e.preventDefault();
     if (!newEnvName.trim()) return;
     try {
@@ -123,6 +123,7 @@ export const EnvironmentManager: React.FC = () => {
         />
         <button
           type="submit"
+          onClick={handleCreateEnv}
           className="p-2 bg-[var(--accent-color)] hover:bg-[var(--accent-hover)] text-white rounded-lg transition-colors cursor-pointer"
         >
           <Plus size={14} />

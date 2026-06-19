@@ -126,7 +126,7 @@ export const DbExplorer: React.FC = () => {
         <select
           value={activeConnectionId || ''}
           onChange={(e) => setActiveConnectionId(e.target.value || null)}
-          className="w-full px-3 py-1.5 text-xs text-zinc-200 bg-[#0e0e11] border border-[#1a1a24] rounded-lg focus:border-indigo-500/50 focus:outline-none cursor-pointer"
+          className="w-full px-3 py-1.5 text-xs rounded-lg focus:outline-none cursor-pointer transition-all border bg-[#181822] border-[#181822]/30 focus:border-[#181822]"
         >
           <option value="">-- Disconnected --</option>
           {dbConnections.map(c => (
