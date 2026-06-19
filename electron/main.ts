@@ -155,16 +155,42 @@ ipcMain.handle('terminal:create', (event, tabId: string, cols: number, rows: num
     ptyProcesses.delete(tabId);
   }
 
-  const shell = process.platform === 'win32' ? 'powershell.exe' : (process.env.SHELL || '/bin/zsh');
-  const cwd = process.env.HOME || process.cwd();
+  const cwd = process.cwd() || process.env.HOME || '/';
 
-  const pty = nodePty.spawn(shell, [], {
-    name: 'xterm-256color',
-    cols: cols || 80,
-    rows: rows || 24,
-    cwd,
-    env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
-  });
+  const shellsToTry: string[] = [];
+  if (process.platform === 'win32') {
+    shellsToTry.push('powershell.exe', 'cmd.exe');
+  } else {
+    if (process.env.SHELL) {
+      shellsToTry.push(process.env.SHELL);
+    }
+    shellsToTry.push('/bin/zsh', '/bin/bash', '/bin/sh');
+  }
+
+  const uniqueShells = Array.from(new Set(shellsToTry));
+  let pty: nodePty.IPty | null = null;
+  let spawnError: any = null;
+
+  for (const shellToSpawn of uniqueShells) {
+    try {
+      pty = nodePty.spawn(shellToSpawn, [], {
+        name: 'xterm-256color',
+        cols: cols || 80,
+        rows: rows || 24,
+        cwd,
+        env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor' },
+      });
+      spawnError = null;
+      break;
+    } catch (err) {
+      console.error(`Terminal spawn failed for shell ${shellToSpawn}:`, err);
+      spawnError = err;
+    }
+  }
+
+  if (spawnError || !pty) {
+    throw spawnError || new Error("Failed to spawn any shell process.");
+  }
 
   ptyProcesses.set(tabId, pty);
 

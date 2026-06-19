@@ -1,16 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
-import { Calendar, Key, AlertCircle, CheckCircle, ShieldCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle, ShieldCheck } from 'lucide-react';
 
 export const JwtDecoder: React.FC = () => {
   const [token, setToken] = useState('');
   const [header, setHeader] = useState<any>(null);
   const [payload, setPayload] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
 
   const decodeJwt = (jwt: string) => {
     setError(null);
     setHeader(null);
     setPayload(null);
+    setIsExpired(false);
 
     if (!jwt.trim()) return;
 
@@ -40,6 +43,9 @@ export const JwtDecoder: React.FC = () => {
 
       setHeader(decodedHeader);
       setPayload(decodedPayload);
+      
+      const expired = decodedPayload.exp ? Math.floor(Date.now() / 1000) > decodedPayload.exp : false;
+      setIsExpired(expired);
     } catch (err: any) {
       setError(err.message || 'Error decoding base64 payload segments');
     }
@@ -56,12 +62,6 @@ export const JwtDecoder: React.FC = () => {
     } catch {
       return 'Invalid Date';
     }
-  };
-
-  const isTokenExpired = () => {
-    if (!payload || !payload.exp) return false;
-    const now = Math.floor(Date.now() / 1000);
-    return now > payload.exp;
   };
 
   return (
@@ -111,13 +111,13 @@ export const JwtDecoder: React.FC = () => {
             <div className="flex-1 p-4 rounded-xl theme-bg-secondary border theme-border overflow-y-auto flex flex-col gap-3">
               {/* Expiry indicator card */}
               <div className={`p-3 rounded-lg border flex items-center gap-3 ${
-                isTokenExpired()
+                isExpired
                   ? 'bg-rose-50 border-rose-200 text-rose-700'
                   : 'bg-emerald-50 border-emerald-200 text-emerald-700'
               }`}>
-                {isTokenExpired() ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
+                {isExpired ? <AlertCircle size={18} /> : <CheckCircle size={18} />}
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold">{isTokenExpired() ? 'Token Expired' : 'Token Active / Valid'}</span>
+                  <span className="text-xs font-bold">{isExpired ? 'Token Expired' : 'Token Active / Valid'}</span>
                   {payload.exp && (
                     <span className="text-[10px] opacity-80">
                       Expires: {formatClaimsDate(payload.exp)}

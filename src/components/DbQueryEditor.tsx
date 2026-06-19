@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { Play, Save, Trash2, CheckCircle, Database } from 'lucide-react';
 import { useStore } from '../store';
@@ -11,27 +12,28 @@ interface DbQueryEditorProps {
 
 export const DbQueryEditor: React.FC<DbQueryEditorProps> = ({ connectionId, tabId, initialQuery }) => {
   const { dbConnections, dbHistory, addDbHistoryLog, clearDbHistoryLog, theme } = useStore();
-  const [query, setQuery] = useState(initialQuery || 'SELECT * FROM table LIMIT 100');
+  const conn = dbConnections.find(c => c.id === connectionId);
+  const [query, setQuery] = useState(() => {
+    if (conn?.type === 'mongo') {
+      return initialQuery || 'db.collectionName.find()';
+    }
+    return initialQuery || 'SELECT * FROM table LIMIT 100';
+  });
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [results, setResults] = useState<{ rows: any[]; columns: string[] } | null>(null);
 
+  // Auto Refresh States
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [customInterval, setCustomInterval] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
   const resolvedTheme = theme === 'system'
     ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'vs')
     : (theme === 'dark' ? 'vs-dark' : 'vs');
 
-  // Restore history items list for the connection
-  useEffect(() => {
-    // Basic init query setup
-    if (conn?.type === 'mongo') {
-      setQuery(initialQuery || 'db.collectionName.find()');
-    } else {
-      setQuery(initialQuery || 'SELECT * FROM table LIMIT 100');
-    }
-  }, [connectionId, conn]);
-
-  const handleRun = async () => {
+  const handleRun = useCallback(async () => {
     if (!conn) return;
     setRunning(true);
     setError(null);
@@ -48,7 +50,15 @@ export const DbQueryEditor: React.FC<DbQueryEditorProps> = ({ connectionId, tabI
     } finally {
       setRunning(false);
     }
-  };
+  }, [conn, query, connectionId, addDbHistoryLog]);
+
+  useEffect(() => {
+    if (!refreshInterval || refreshInterval <= 0) return;
+    const intervalId = setInterval(() => {
+      handleRun();
+    }, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, handleRun]);
 
   // Bind Ctrl+Enter keyboard listener inside Monaco workspace
   const handleEditorDidMount = (editor: any, monaco: any) => {
@@ -66,6 +76,53 @@ export const DbQueryEditor: React.FC<DbQueryEditorProps> = ({ connectionId, tabI
           <div className="flex justify-between items-center px-2 pb-1 border-b theme-border">
             <span className="text-[10px] uppercase font-bold text-zinc-500">Console Editor</span>
             <div className="flex items-center gap-1.5">
+              <select
+                value={refreshInterval === null ? 'off' : showCustomInput ? 'custom' : refreshInterval}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === 'off') {
+                    setRefreshInterval(null);
+                    setShowCustomInput(false);
+                  } else if (val === 'custom') {
+                    setShowCustomInput(true);
+                  } else {
+                    setRefreshInterval(Number(val));
+                    setShowCustomInput(false);
+                  }
+                }}
+                className={`px-2 py-1 text-[11px] rounded border focus:outline-none cursor-pointer ${
+                  theme === 'light' ? 'bg-[#ffffff] text-zinc-700 border-[#e4e4e7]' : 'bg-[#0e0e11] text-zinc-300 border-[#1a1a24]'
+                }`}
+              >
+                <option value="off">Auto Run: Off</option>
+                <option value="5000">Every 5s</option>
+                <option value="10000">Every 10s</option>
+                <option value="30000">Every 30s</option>
+                <option value="60000">Every 60s</option>
+                <option value="custom">Custom...</option>
+              </select>
+
+              {showCustomInput && (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    placeholder="Sec"
+                    value={customInterval}
+                    onChange={(e) => {
+                      setCustomInterval(e.target.value);
+                      const seconds = Number(e.target.value);
+                      if (seconds > 0) {
+                        setRefreshInterval(seconds * 1000);
+                      }
+                    }}
+                    className={`w-12 px-1.5 py-0.5 text-[11px] rounded border focus:outline-none font-mono ${
+                      theme === 'light' ? 'bg-[#ffffff] text-zinc-800 border-[#e4e4e7]' : 'bg-[#0e0e11] text-zinc-200 border-[#1a1a24]'
+                    }`}
+                  />
+                  <span className="text-[10px] text-zinc-500">s</span>
+                </div>
+              )}
+
               <button
                 onClick={handleRun}
                 disabled={running}

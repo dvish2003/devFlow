@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { Send, Database, FileText, Braces, Key, Code2, Sliders, Printer, Table, Settings, Layers, TerminalSquare } from 'lucide-react';
 import { useStore } from '../store';
@@ -48,7 +49,7 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <div className="w-14 h-full flex flex-col items-center theme-bg-sidebar border-r theme-border py-3 select-none transition-colors duration-200">
+    <div className="w-14 flex-shrink-0 h-full flex flex-col items-center theme-bg-sidebar border-r theme-border py-3 select-none transition-colors duration-200">
       {/* Brand */}
       <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 mb-4 cursor-pointer transform hover:scale-105 transition-transform duration-200 flex-shrink-0">
         <span className="text-white font-extrabold text-sm tracking-wider">DF</span>

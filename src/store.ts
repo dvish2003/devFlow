@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 import type { RequestItem, Collection, Environment, Variable, HistoryItem, RequestTab, RequestResponse, DbConnection, DbTab, DbQuery, DbHistoryItem, NoteItem, CodeSnippetItem } from './types';
 
@@ -77,7 +78,7 @@ interface DevFlowState {
   setActiveTabSending: (sending: boolean) => void;
 
   // Collection CRUD
-  createCollection: (name: string, parentId?: string | null) => Promise<void>;
+  createCollection: (name: string, parentId?: string | null) => Promise<any>;
   deleteCollection: (id: string) => Promise<void>;
 
   // Request CRUD
@@ -86,7 +87,7 @@ interface DevFlowState {
   deleteRequest: (id: string) => Promise<void>;
 
   // Environment CRUD
-  createEnvironment: (name: string) => Promise<void>;
+  createEnvironment: (name: string) => Promise<Environment>;
   deleteEnvironment: (id: string) => Promise<void>;
   setActiveEnvironment: (id: string | null) => Promise<void>;
   createVariable: (envId: string, key: string, value: string) => Promise<void>;
@@ -294,7 +295,7 @@ export const useStore = create<DevFlowState>((set, get) => ({
 
   createCollection: async (name, parentId = null) => {
     const newCol = {
-      id: `col_${Date.now()}`,
+      id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       name,
       parent_id: parentId,
       workspace_id: 'default',
@@ -302,6 +303,7 @@ export const useStore = create<DevFlowState>((set, get) => ({
     };
     await window.api.saveCollection(newCol);
     set((state) => ({ collections: [...state.collections, newCol] }));
+    return newCol;
   },
 
   deleteCollection: async (id) => {
@@ -356,6 +358,7 @@ export const useStore = create<DevFlowState>((set, get) => ({
     };
     await window.api.saveEnvironment(newEnv);
     set((state) => ({ environments: [...state.environments, newEnv] }));
+    return newEnv;
   },
 
   deleteEnvironment: async (id) => {

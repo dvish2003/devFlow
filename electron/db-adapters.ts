@@ -27,6 +27,16 @@ export function decryptPassword(encryptedBase64: string): string {
   }
 }
 
+export function buildMongoUri(conn: DbConnection, passwordDecrypted: string): string {
+  const options = JSON.parse(conn.options_json || '{}');
+  const isSrv = options.srv === true;
+  const auth = conn.username ? `${conn.username}:${encodeURIComponent(passwordDecrypted)}@` : '';
+  const hostStr = conn.host || 'localhost';
+  const portStr = !isSrv && conn.port ? `:${conn.port}` : '';
+  const protocol = isSrv ? 'mongodb+srv' : 'mongodb';
+  return `${protocol}://${auth}${hostStr}${portStr}/${conn.database || ''}`;
+}
+
 export interface DbConnection {
   id: string;
   name: string;
@@ -76,11 +86,7 @@ export const dbEngine = {
       }
 
       if (conn.type === 'mongo') {
-        // Build Mongo URI
-        const auth = conn.username ? `${conn.username}:${encodeURIComponent(password)}@` : '';
-        const hostStr = conn.host || 'localhost';
-        const portStr = conn.port ? `:${conn.port}` : '';
-        const uri = `mongodb://${auth}${hostStr}${portStr}/${conn.database || ''}`;
+        const uri = buildMongoUri(conn, password);
         const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
         await client.connect();
         await client.close();
@@ -145,10 +151,7 @@ export const dbEngine = {
       }
 
       if (conn.type === 'mongo') {
-        const auth = conn.username ? `${conn.username}:${encodeURIComponent(password)}@` : '';
-        const hostStr = conn.host || 'localhost';
-        const portStr = conn.port ? `:${conn.port}` : '';
-        const uri = `mongodb://${auth}${hostStr}${portStr}/${conn.database || ''}`;
+        const uri = buildMongoUri(conn, password);
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db(conn.database || 'test');
@@ -219,10 +222,7 @@ export const dbEngine = {
       }
 
       if (conn.type === 'mongo') {
-        const auth = conn.username ? `${conn.username}:${encodeURIComponent(password)}@` : '';
-        const hostStr = conn.host || 'localhost';
-        const portStr = conn.port ? `:${conn.port}` : '';
-        const uri = `mongodb://${auth}${hostStr}${portStr}/${conn.database || ''}`;
+        const uri = buildMongoUri(conn, password);
         const client = new MongoClient(uri);
         await client.connect();
         const db = client.db(conn.database || 'test');

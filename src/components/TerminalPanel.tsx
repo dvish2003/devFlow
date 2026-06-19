@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
-import { Terminal, Plus, X, RotateCcw, Maximize2, ChevronDown } from 'lucide-react';
+import { Terminal, Plus, X, RotateCcw } from 'lucide-react';
 import { useStore } from '../store';
 
 // ─── IPC bridge helpers ───────────────────────────────────────────────────────

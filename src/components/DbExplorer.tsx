@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { Plus, Database, Network, Key, FolderOpen, Play, Check, Server, Eye, Trash2, ShieldAlert } from 'lucide-react';
+import { Plus, Database, Server, Eye, Trash2, ShieldAlert } from 'lucide-react';
 import { useStore } from '../store';
-import type { DbConnection } from '../types';
 
 export const DbExplorer: React.FC = () => {
   const {
@@ -27,6 +27,7 @@ export const DbExplorer: React.FC = () => {
   const [password, setPassword] = useState('');
   const [database, setDatabase] = useState('');
   const [ssl, setSsl] = useState(false);
+  const [srv, setSrv] = useState(false);
 
   // Schema tree states
   const [tables, setTables] = useState<string[]>([]);
@@ -55,7 +56,7 @@ export const DbExplorer: React.FC = () => {
   const handleTest = async () => {
     setTesting(true);
     setTestResult(null);
-    const payload = { id: '', name, type, host, port, username, password, database, options_json: JSON.stringify({ ssl }) };
+    const payload = { id: '', name, type, host, port: srv ? undefined : port, username, password, database, options_json: JSON.stringify({ ssl, srv }) };
     const res = await window.api.testConnection(payload);
     setTesting(false);
     setTestResult(res);
@@ -69,17 +70,19 @@ export const DbExplorer: React.FC = () => {
       name: name.trim(),
       type,
       host: type !== 'sqlite' ? host : undefined,
-      port: type !== 'sqlite' ? port : undefined,
+      port: type !== 'sqlite' && !srv ? port : undefined,
       username: type !== 'sqlite' ? username : undefined,
       password: password || undefined,
       database: database.trim(),
-      options_json: JSON.stringify({ ssl })
+      options_json: JSON.stringify({ ssl, srv })
     });
 
     // Reset Form
     setName('');
     setPassword('');
     setDatabase('');
+    setSrv(false);
+    setSsl(false);
     setShowModal(false);
     setTestResult(null);
   };
@@ -248,12 +251,12 @@ export const DbExplorer: React.FC = () => {
             ) : (
               <>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="col-span-2 flex flex-col gap-1">
-                    <label className="text-[11px] theme-text-secondary">Host</label>
+                  <div className={`${type === 'mongo' && srv ? 'col-span-3' : 'col-span-2'} flex flex-col gap-1`}>
+                    <label className="text-[11px] theme-text-secondary">Host / Connection String URI</label>
                     <input
                       type="text"
                       required
-                      placeholder="127.0.0.1"
+                      placeholder={type === 'mongo' && srv ? "cluster0.xxxx.mongodb.net" : "127.0.0.1"}
                       value={host}
                       onChange={(e) => setHost(e.target.value)}
                       className={`px-3 py-1.5 text-xs rounded-lg focus:outline-none font-mono ${
@@ -261,18 +264,20 @@ export const DbExplorer: React.FC = () => {
                       }`}
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-[11px] theme-text-secondary">Port</label>
-                    <input
-                      type="number"
-                      required
-                      value={port}
-                      onChange={(e) => setPort(Number(e.target.value))}
-                      className={`px-3 py-1.5 text-xs rounded-lg focus:outline-none font-mono ${
-                        theme === 'light' ? 'bg-[#ffffff] text-zinc-800 border border-[#e4e4e7] focus:border-blue-500/50' : 'bg-[#050507] text-zinc-200 border border-[#1a1a24] focus:border-blue-500/50'
-                      }`}
-                    />
-                  </div>
+                  {!(type === 'mongo' && srv) && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] theme-text-secondary">Port</label>
+                      <input
+                        type="number"
+                        required
+                        value={port}
+                        onChange={(e) => setPort(Number(e.target.value))}
+                        className={`px-3 py-1.5 text-xs rounded-lg focus:outline-none font-mono ${
+                          theme === 'light' ? 'bg-[#ffffff] text-zinc-800 border border-[#e4e4e7] focus:border-blue-500/50' : 'bg-[#050507] text-zinc-200 border border-[#1a1a24] focus:border-blue-500/50'
+                        }`}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -316,15 +321,29 @@ export const DbExplorer: React.FC = () => {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 mt-1">
-                  <input
-                    type="checkbox"
-                    id="ssl"
-                    checked={ssl}
-                    onChange={(e) => setSsl(e.target.checked)}
-                    className="w-4 h-4 accent-blue-500 border-zinc-700 bg-zinc-800 rounded cursor-pointer"
-                  />
-                  <label htmlFor="ssl" className="text-xs theme-text-secondary cursor-pointer">Require SSL Link</label>
+                <div className="flex flex-col gap-2 mt-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="ssl"
+                      checked={ssl}
+                      onChange={(e) => setSsl(e.target.checked)}
+                      className="w-4 h-4 accent-blue-500 border-zinc-700 bg-zinc-800 rounded cursor-pointer"
+                    />
+                    <label htmlFor="ssl" className="text-xs theme-text-secondary cursor-pointer">Require SSL Link</label>
+                  </div>
+                  {type === 'mongo' && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="srv"
+                        checked={srv}
+                        onChange={(e) => setSrv(e.target.checked)}
+                        className="w-4 h-4 accent-blue-500 border-zinc-700 bg-zinc-800 rounded cursor-pointer"
+                      />
+                      <label htmlFor="srv" className="text-xs theme-text-secondary cursor-pointer">Atlas Cluster Connection (mongodb+srv)</label>
+                    </div>
+                  )}
                 </div>
               </>
             )}

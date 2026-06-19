@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Download, Copy, Check, FileCode } from 'lucide-react';
+import { Plus, Trash2, Download, Copy, Check } from 'lucide-react';
 
 interface EnvVar {
   key: string;

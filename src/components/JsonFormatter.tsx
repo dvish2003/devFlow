@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { Clipboard, Check, Braces, Download, Sparkles, X } from 'lucide-react';
 

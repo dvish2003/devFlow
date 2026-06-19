@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.dbEngine = void 0;
 exports.encryptPassword = encryptPassword;
 exports.decryptPassword = decryptPassword;
+exports.buildMongoUri = buildMongoUri;
 const promise_1 = __importDefault(require("mysql2/promise"));
 const pg_1 = require("pg");
 const mongodb_1 = require("mongodb");
@@ -34,6 +35,15 @@ function decryptPassword(encryptedBase64) {
         console.error('Decryption failed, returning empty', err);
         return '';
     }
+}
+function buildMongoUri(conn, passwordDecrypted) {
+    const options = JSON.parse(conn.options_json || '{}');
+    const isSrv = options.srv === true;
+    const auth = conn.username ? `${conn.username}:${encodeURIComponent(passwordDecrypted)}@` : '';
+    const hostStr = conn.host || 'localhost';
+    const portStr = !isSrv && conn.port ? `:${conn.port}` : '';
+    const protocol = isSrv ? 'mongodb+srv' : 'mongodb';
+    return `${protocol}://${auth}${hostStr}${portStr}/${conn.database || ''}`;
 }
 exports.dbEngine = {
     // Test connection
@@ -69,11 +79,7 @@ exports.dbEngine = {
                 return { success: true, message: 'PostgreSQL connection successful' };
             }
             if (conn.type === 'mongo') {
-                // Build Mongo URI
-                const auth = conn.username ? `${conn.username}:${encodeURIComponent(password)}@` : '';
-                const hostStr = conn.host || 'localhost';
-                const portStr = conn.port ? `:${conn.port}` : '';
-                const uri = `mongodb://${auth}${hostStr}${portStr}/${conn.database || ''}`;
+                const uri = buildMongoUri(conn, password);
                 const client = new mongodb_1.MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
                 await client.connect();
                 await client.close();
@@ -133,10 +139,7 @@ exports.dbEngine = {
                 return { tables };
             }
             if (conn.type === 'mongo') {
-                const auth = conn.username ? `${conn.username}:${encodeURIComponent(password)}@` : '';
-                const hostStr = conn.host || 'localhost';
-                const portStr = conn.port ? `:${conn.port}` : '';
-                const uri = `mongodb://${auth}${hostStr}${portStr}/${conn.database || ''}`;
+                const uri = buildMongoUri(conn, password);
                 const client = new mongodb_1.MongoClient(uri);
                 await client.connect();
                 const db = client.db(conn.database || 'test');
@@ -201,10 +204,7 @@ exports.dbEngine = {
                 return { rows: [{ command: res.command, rowCount: res.rowCount }], columns: ['result'] };
             }
             if (conn.type === 'mongo') {
-                const auth = conn.username ? `${conn.username}:${encodeURIComponent(password)}@` : '';
-                const hostStr = conn.host || 'localhost';
-                const portStr = conn.port ? `:${conn.port}` : '';
-                const uri = `mongodb://${auth}${hostStr}${portStr}/${conn.database || ''}`;
+                const uri = buildMongoUri(conn, password);
                 const client = new mongodb_1.MongoClient(uri);
                 await client.connect();
                 const db = client.db(conn.database || 'test');

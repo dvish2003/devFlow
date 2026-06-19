@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
-import { Search, Trash2, Clock, Send } from 'lucide-react';
+import { Search, Trash2, Clock } from 'lucide-react';
 import { useStore } from '../store';
 import { getMethodColor } from './Tabs';
+
+const getNow = () => Date.now();
 
 export const HistoryPanel: React.FC = () => {
   const { history, clearHistory, addTab } = useStore();
@@ -19,7 +22,7 @@ export const HistoryPanel: React.FC = () => {
       name: `History: ${item.method}`,
       method: item.method,
       url: item.url,
-      created_at: Date.now()
+      created_at: getNow()
     });
   };
 

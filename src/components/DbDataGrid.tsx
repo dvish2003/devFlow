@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Download, Eye, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
@@ -23,6 +24,11 @@ export const DbDataGrid: React.FC<DbDataGridProps> = ({ connectionId, tableName,
   // Editing cell states
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colName: string; originalVal: any } | null>(null);
   const [editValue, setEditValue] = useState('');
+
+  // Auto Refresh States
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const [customInterval, setCustomInterval] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
 
   const conn = dbConnections.find(c => c.id === connectionId);
   const tab = dbTabs.find(t => t.id === tabId);
@@ -55,6 +61,14 @@ export const DbDataGrid: React.FC<DbDataGridProps> = ({ connectionId, tableName,
   useEffect(() => {
     loadData();
   }, [connectionId, tableName, page, sortCol, sortDir, filterStr]);
+
+  useEffect(() => {
+    if (!refreshInterval || refreshInterval <= 0) return;
+    const intervalId = setInterval(() => {
+      loadData();
+    }, refreshInterval);
+    return () => clearInterval(intervalId);
+  }, [refreshInterval, connectionId, tableName, page, sortCol, sortDir, filterStr]);
 
   const handleExport = (format: 'csv' | 'json') => {
     if (!tab?.results) return;
@@ -152,6 +166,53 @@ export const DbDataGrid: React.FC<DbDataGridProps> = ({ connectionId, tableName,
           >
             <RefreshCw size={13} />
           </button>
+
+          <select
+            value={refreshInterval === null ? 'off' : showCustomInput ? 'custom' : refreshInterval}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'off') {
+                setRefreshInterval(null);
+                setShowCustomInput(false);
+              } else if (val === 'custom') {
+                setShowCustomInput(true);
+              } else {
+                setRefreshInterval(Number(val));
+                setShowCustomInput(false);
+              }
+            }}
+            className={`px-2 py-1 text-[11px] rounded border focus:outline-none cursor-pointer ${
+              theme === 'light' ? 'bg-[#ffffff] text-zinc-700 border-[#e4e4e7]' : 'bg-[#0e0e11] text-zinc-300 border-[#1a1a24]'
+            }`}
+          >
+            <option value="off">Auto Refresh: Off</option>
+            <option value="5000">Every 5s</option>
+            <option value="10000">Every 10s</option>
+            <option value="30000">Every 30s</option>
+            <option value="60000">Every 60s</option>
+            <option value="custom">Custom...</option>
+          </select>
+
+          {showCustomInput && (
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                placeholder="Sec"
+                value={customInterval}
+                onChange={(e) => {
+                  setCustomInterval(e.target.value);
+                  const seconds = Number(e.target.value);
+                  if (seconds > 0) {
+                    setRefreshInterval(seconds * 1000);
+                  }
+                }}
+                className={`w-12 px-1.5 py-0.5 text-[11px] rounded border focus:outline-none font-mono ${
+                  theme === 'light' ? 'bg-[#ffffff] text-zinc-800 border-[#e4e4e7]' : 'bg-[#0e0e11] text-zinc-200 border-[#1a1a24]'
+                }`}
+              />
+              <span className="text-[10px] text-zinc-500">s</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">

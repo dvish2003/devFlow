@@ -42,7 +42,6 @@ export const PdfGenerator: React.FC = () => {
 
   const handleFile = async (file: File) => {
     setFileError('');
-    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
     setFileName(file.name);
     setDocTitle(file.name.replace(/\.[^/.]+$/, ''));
     try {

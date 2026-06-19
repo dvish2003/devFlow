@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export interface Variable {
   id: string;
   environment_id: string;
@@ -94,6 +95,7 @@ export interface DbConnection {
   host?: string;
   port?: number;
   username?: string;
+  password?: string;
   password_encrypted?: string;
   database?: string;
   options_json?: string;

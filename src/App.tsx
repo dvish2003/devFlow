@@ -28,6 +28,7 @@ import PdfGenerator from './components/PdfGenerator';
 import CsvLoader from './components/CsvLoader';
 import SettingsPanel from './components/SettingsPanel';
 import TerminalPanel from './components/TerminalPanel';
+import PluginsWorkspace from './components/PluginsWorkspace';
 
 export const App: React.FC = () => {
   const {
@@ -142,7 +143,7 @@ export const App: React.FC = () => {
 
       {/* Primary Sidebar Content panel */}
       {['api', 'db', 'plugins'].includes(sidebarTab) && (
-        <div className="w-80 h-full border-r flex flex-col overflow-hidden transition-colors theme-bg-secondary theme-border">
+        <div className="w-80 flex-shrink-0 h-full border-r flex flex-col overflow-hidden transition-colors theme-bg-secondary theme-border">
           {sidebarTab === 'api' && (
             <div className="flex flex-col h-full overflow-hidden">
               {/* Sub-tabs header for API Client */}
@@ -235,7 +236,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Main Workspace workbench */}
-      <div className="flex-grow h-full flex flex-col overflow-hidden relative">
+      <div className="flex-grow min-w-0 h-full flex flex-col overflow-hidden relative">
 
 
         {sidebarTab === 'terminal' ? (
@@ -282,12 +283,14 @@ export const App: React.FC = () => {
               {activeDbTab ? (
                 activeDbTab.type === 'table' && activeDbTab.tableName ? (
                   <DbDataGrid
+                    key={activeDbTab.id}
                     connectionId={activeDbTab.connectionId}
                     tableName={activeDbTab.tableName}
                     tabId={activeDbTab.id}
                   />
                 ) : (
                   <DbQueryEditor
+                    key={activeDbTab.id}
                     connectionId={activeDbTab.connectionId}
                     tabId={activeDbTab.id}
                     initialQuery={activeDbTab.queryContent}
@@ -318,6 +321,8 @@ export const App: React.FC = () => {
           <CsvLoader />
         ) : sidebarTab === 'settings' ? (
           <SettingsPanel />
+        ) : sidebarTab === 'plugins' ? (
+          <PluginsWorkspace />
         ) : (
           /* API Workbench Workspace Panel */
           activeTab ? (

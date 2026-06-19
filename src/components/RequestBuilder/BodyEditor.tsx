@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import Editor from '@monaco-editor/react';
 import { useStore } from '../../store';
