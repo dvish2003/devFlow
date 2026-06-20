@@ -14,7 +14,9 @@ mac:
   category: public.app-category.developer-tools
 win:
   target:
-    - nsis
+    - target: nsis   # Generates .exe installer
+    - target: zip    # Generates .zip portable version
+
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
